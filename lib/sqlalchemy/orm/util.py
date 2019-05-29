@@ -495,7 +495,8 @@ class AliasedClass(object):
         except KeyError:
             raise AttributeError()
         else:
-            for base in _aliased_insp._target.__mro__:
+            target = _aliased_insp._target
+            for base in target.__mro__:
                 try:
                     attr = object.__getattribute__(base, key)
                 except AttributeError:
@@ -503,14 +504,17 @@ class AliasedClass(object):
                 else:
                     break
             else:
-                raise AttributeError(key)
+                try:
+                    attr = target.__class__.__getattr__(target, key)
+                except AttributeError:
+                    raise AttributeError(key)
 
         if isinstance(attr, PropComparator):
             ret = attr.adapt_to_entity(_aliased_insp)
             setattr(self, key, ret)
             return ret
         elif hasattr(attr, "func_code"):
-            is_method = getattr(_aliased_insp._target, key, None)
+            is_method = getattr(target, key, None)
             if is_method and is_method.__self__ is not None:
                 return util.types.MethodType(attr.__func__, self, self)
             else:
